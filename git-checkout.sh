@@ -7,6 +7,32 @@ WORKDIR=$bamboo_build_working_directory
 BRANCH=$bamboo_planRepository_branch
 COMMIT=$bamboo_planRepository_revision
 
+while [[ $# > 0 ]]
+do
+  case $1 in
+      --repo)
+      REPO="$2"
+      shift
+      ;;
+      --workdir)
+      WORKDIR="$2"
+      shift
+      ;;
+      --branch)
+      BRANCH="$2"
+      shift
+      ;;
+      --commit)
+      COMMIT="$2"
+      shift
+      ;;
+      *)
+      UnrecognizedParameter $1
+      ;;
+  esac
+  shift # past argument or value
+done
+
 if [ "$REPO" = "" ]; then
   echo 'Please specify a repo using $bamboo_planRepository_repositoryUrl !'
   exit 1
@@ -28,13 +54,13 @@ echo "Commit: $COMMIT"
 
 if [ ! -d "$WORKDIR" ]; then
   echo 'Cloning clean repo to working directory...'
-  git clone $REPO $WORKDIR
+  git clone -b $BRANCH --single-branch $REPO $WORKDIR
   cd $WORKDIR
 else
   cd $WORKDIR
   if [ ! -d ".git" ]; then
     echo 'Working directory clean, cloning clean repo...'
-    git clone $REPO .
+    git clone -b $BRANCH --single-branch $REPO .
   else
     repo=$(git config --get remote.origin.url)
 
@@ -48,7 +74,4 @@ else
   fi
 fi
 
-git clean -xdf
 git checkout -f -B $BRANCH $COMMIT
-#git reset --hard $COMMIT
-git clean -xdf
