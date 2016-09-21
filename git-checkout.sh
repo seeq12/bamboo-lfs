@@ -6,6 +6,7 @@ REPO=$bamboo_planRepository_repositoryUrl
 WORKDIR=$bamboo_build_working_directory
 BRANCH=$bamboo_planRepository_branch
 COMMIT=$bamboo_planRepository_revision
+WORKTREEOF=
 
 while [[ $# > 0 ]]
 do
@@ -26,6 +27,10 @@ do
       COMMIT="$2"
       shift
       ;;
+      --worktreeof)
+      WORKTREEOF="$2"
+      shift
+      ;;
       *)
       UnrecognizedParameter $1
       ;;
@@ -34,15 +39,20 @@ do
 done
 
 if [ "$REPO" = "" ]; then
-  echo 'Please specify a repo using $bamboo_planRepository_repositoryUrl !'
-  exit 1
-elif [ "$WORKDIR" = "" ]; then
+  if [ "$WORKTREEOF" = "" ]; then
+    echo 'Please specify a repo using $bamboo_planRepository_repositoryUrl or supply a --worktreeof argument!'
+    exit 1
+  fi
+fi
+if [ "$WORKDIR" = "" ]; then
   echo 'Please specify a working directory using $bamboo_build_working_directory !'
   exit 1
-elif [ "$BRANCH" = "" ]; then
+fi
+if [ "$BRANCH" = "" ]; then
   echo 'Please specify a branch using $bamboo_planRepository_branch !'
   exit 1
-elif [ "$COMMIT" = "" ]; then
+fi
+if [ "$COMMIT" = "" ]; then
   echo 'Please specify a commit using $bamboo_planRepository_revision !'
   exit 1
 fi
@@ -51,8 +61,18 @@ echo "Repo: $REPO"
 echo "Working directory: $WORKDIR"
 echo "Branch: $BRANCH"
 echo "Commit: $COMMIT"
+echo "Worktree Of: $WORKTREEOF"
 
-if [ ! -d "$WORKDIR" ]; then
+if [ ! "$WORKTREEOF" = "" ]; then
+  cd $WORKTREEOF
+  git fetch --prune
+  if [ ! -e "$WORKDIR/.git" ]; then
+    echo 'Creating worktree...'
+    git worktree prune
+    git worktree add -f --no-checkout $WORKDIR $BRANCH
+  fi
+  cd $WORKDIR
+elif [ ! -d "$WORKDIR" ]; then
   echo 'Cloning clean repo to working directory...'
   git clone -b $BRANCH --single-branch $REPO $WORKDIR
   cd $WORKDIR
