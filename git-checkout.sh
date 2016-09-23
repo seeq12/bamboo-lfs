@@ -69,18 +69,18 @@ if [ ! "$WORKTREEOF" = "" ]; then
   if [ ! -e "$WORKDIR/.git" ]; then
     echo 'Creating worktree...'
     git worktree prune
-    git worktree add -f --no-checkout $WORKDIR $BRANCH
+    git worktree add -f --no-checkout $WORKDIR origin/$BRANCH
   fi
   cd $WORKDIR
 elif [ ! -d "$WORKDIR" ]; then
   echo 'Cloning clean repo to working directory...'
-  git clone -b $BRANCH --single-branch $REPO $WORKDIR
+  git clone -b origin/$BRANCH --single-branch $REPO $WORKDIR
   cd $WORKDIR
 else
   cd $WORKDIR
   if [ ! -d ".git" ]; then
     echo 'Working directory clean, cloning clean repo...'
-    git clone -b $BRANCH --single-branch $REPO .
+    git clone -b origin/$BRANCH --single-branch $REPO .
   else
     repo=$(git config --get remote.origin.url)
 
@@ -94,4 +94,4 @@ else
   fi
 fi
 
-git checkout -f -B $BRANCH $COMMIT
+git checkout -f -B origin/$BRANCH $COMMIT
