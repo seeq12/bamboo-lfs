@@ -74,13 +74,13 @@ if [ ! "$WORKTREEOF" = "" ]; then
   cd $WORKDIR
 elif [ ! -d "$WORKDIR" ]; then
   echo 'Cloning clean repo to working directory...'
-  git clone -b origin/$BRANCH --single-branch $REPO $WORKDIR
+  git clone -b $BRANCH --single-branch $REPO $WORKDIR
   cd $WORKDIR
 else
   cd $WORKDIR
   if [ ! -d ".git" ]; then
     echo 'Working directory clean, cloning clean repo...'
-    git clone -b origin/$BRANCH --single-branch $REPO .
+    git clone -b $BRANCH --single-branch $REPO .
   else
     repo=$(git config --get remote.origin.url)
 
