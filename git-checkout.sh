@@ -116,16 +116,16 @@ checkout () {
   checkout_retcode=0
 }
 
-if [ ! "$WORKTREEOF" = "" ]; then
-  worktreeCheckout
-elif [ ! -d "$WORKDIR" ]; then
-  cloneCleanRepo
-else
-  cloneIntoExistingFolder
-fi
-
 # Retry five times in case there is a connectivity error
 for i in {1..5}; do 
+  if [ ! "$WORKTREEOF" = "" ]; then
+    worktreeCheckout
+  elif [ ! -d "$WORKDIR" ]; then
+    cloneCleanRepo
+  else
+    cloneIntoExistingFolder
+  fi
+  
   checkout
   if [ $checkout_retcode -eq 0 ]; then break; fi
 done
