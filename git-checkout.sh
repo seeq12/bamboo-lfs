@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -ex
+set -x
 
 REPO=$bamboo_planRepository_repositoryUrl
 WORKDIR=$bamboo_build_working_directory
@@ -63,35 +63,68 @@ echo "Branch: $BRANCH"
 echo "Commit: $COMMIT"
 echo "Worktree Of: $WORKTREEOF"
 
-if [ ! "$WORKTREEOF" = "" ]; then
+errorOnCloneOrCheckout () {
+  cd $WORKDIR
+  git lfs logs last
+  exit 1
+}
+
+error () {
+  exit 1
+}
+
+worktreeCheckout () {
   cd $WORKTREEOF
   git fetch --prune
   if [ ! -e "$WORKDIR/.git" ]; then
     echo 'Creating worktree...'
+
     git worktree prune
+    if [ $? -ne 0 ]; then error; fi
+    
     git worktree add -f --no-checkout $WORKDIR origin/$BRANCH
+    if [ $? -ne 0 ]; then error; fi
   fi
-  cd $WORKDIR
-elif [ ! -d "$WORKDIR" ]; then
+}
+
+cloneCleanRepo () {
   echo 'Cloning clean repo to working directory...'
   git clone -b $BRANCH --single-branch $REPO $WORKDIR
-  cd $WORKDIR
-else
-  cd $WORKDIR
+  if [ $? -ne 0 ]; then errorOnCloneOrCheckout; fi
+}
+
+cloneIntoExistingFolder () {
   if [ ! -d ".git" ]; then
     echo 'Working directory clean, cloning clean repo...'
     git clone -b $BRANCH --single-branch $REPO .
+    if [ $? -ne 0 ]; then errorOnCloneOrCheckout; fi
   else
     repo=$(git config --get remote.origin.url)
 
     if [ "$repo" != "$REPO" ]; then
       echo "Existing repo $repo does not match specified repo $REPO\; aborting"
-      exit 10
+      exit 1
     fi
 
     echo 'Updating existing repo...'
     git fetch --prune
+    if [ $? -ne 0 ]; then error; fi
   fi
+}
+
+checkout () {
+  cd $WORKDIR
+  git checkout -f -B origin/$BRANCH $COMMIT
+  if [ $? -ne 0 ]; then errorOnCloneOrCheckout; fi
+}
+
+if [ ! "$WORKTREEOF" = "" ]; then
+  worktreeCheckout
+elif [ ! -d "$WORKDIR" ]; then
+  cloneCleanRepo
+else
+  cloneIntoExistingFolder
 fi
 
-git checkout -f -B origin/$BRANCH $COMMIT
+checkout
+
