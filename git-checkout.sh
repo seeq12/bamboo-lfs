@@ -66,11 +66,6 @@ echo "Worktree Of: $WORKTREEOF"
 errorOnCloneOrCheckout () {
   cd $WORKDIR
   git lfs logs last
-  exit 1
-}
-
-error () {
-  exit 1
 }
 
 worktreeCheckout () {
@@ -80,24 +75,24 @@ worktreeCheckout () {
     echo 'Creating worktree...'
 
     git worktree prune
-    if [ $? -ne 0 ]; then error; fi
+    if [ $? -ne 0 ]; then return; fi
     
     git worktree add -f --no-checkout $WORKDIR origin/$BRANCH
-    if [ $? -ne 0 ]; then error; fi
+    if [ $? -ne 0 ]; then return; fi
   fi
 }
 
 cloneCleanRepo () {
   echo 'Cloning clean repo to working directory...'
   git clone -b $BRANCH --single-branch $REPO $WORKDIR
-  if [ $? -ne 0 ]; then errorOnCloneOrCheckout; fi
+  if [ $? -ne 0 ]; then errorOnCloneOrCheckout; return; fi
 }
 
 cloneIntoExistingFolder () {
   if [ ! -d ".git" ]; then
     echo 'Working directory clean, cloning clean repo...'
     git clone -b $BRANCH --single-branch $REPO .
-    if [ $? -ne 0 ]; then errorOnCloneOrCheckout; fi
+    if [ $? -ne 0 ]; then errorOnCloneOrCheckout; return; fi
   else
     repo=$(git config --get remote.origin.url)
 
@@ -108,14 +103,17 @@ cloneIntoExistingFolder () {
 
     echo 'Updating existing repo...'
     git fetch --prune
-    if [ $? -ne 0 ]; then error; fi
+    if [ $? -ne 0 ]; then return; fi
   fi
 }
+
+checkout_retcode=1
 
 checkout () {
   cd $WORKDIR
   git checkout -f -B origin/$BRANCH $COMMIT
-  if [ $? -ne 0 ]; then errorOnCloneOrCheckout; fi
+  if [ $? -ne 0 ]; then errorOnCloneOrCheckout; return; fi
+  checkout_retcode=0
 }
 
 if [ ! "$WORKTREEOF" = "" ]; then
@@ -126,5 +124,14 @@ else
   cloneIntoExistingFolder
 fi
 
-checkout
+# Retry five times in case there is a connectivity error
+for i in {1..5}; do 
+  checkout
+  if [ $checkout_retcode -eq 0 ]; then break; fi
+done
 
+if [ $checkout_retcode -ne 0 ]; then
+  echo "Checkout failed, check script output above."
+else
+  echo "Checkout successful."
+fi
